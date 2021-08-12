@@ -75,10 +75,15 @@ class MyMarginals:
             return diff
         return np.concatenate(diff)
 
-def laplace_mech(marginal_queries, dataset):
-    sensitivity = 2
-    epsilon = 0.1
-    data[data[marginal_queries] == 1].shape[0] + np.random.laplace(loc=0, scale=sensitivity/epsilon)
+def laplace_mech(dataset, epsilon):
+    workload = [('A', 'B'), ('A', 'C'), ('C', 'D')]
+    marginal_queries = MyMarginals(dataset.domain, workload)
+    answers = marginal_queries.get_answers(dataset)
+    sensitivity = len(workload)/dataset.df.shape[0]
+    #dataset[dataset[marginal_queries] == 1].shape[0] + np.random.laplace(loc=0, scale=sensitivity/epsilon)
+    noise = np.random.laplace(loc=0, scale=sensitivity/epsilon, size=answers.shape)
+    noisy_answers = answers + noise
+    return answers, noisy_answers
 
     """
     for all D, D'
@@ -104,10 +109,14 @@ def laplace_mech(marginal_queries, dataset):
 if __name__ == "__main__":
     # dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
     dataset = Dataset.load('data/test.csv', 'data/test-domain.json')
+    real_answers, laplace_answers = laplace_mech(dataset,epsilon = 10)
+    error = np.linalg.norm(real_answers - laplace_answers)
+    print(error)
+    #print(laplace_answers)
 
-    print(dataset.df.head())
+    #print(dataset.df.head())
 
-    workload = [('A', 'B'), ('A', 'C'), ('C', 'D')]
+    #workload = [('A', 'B'), ('A', 'C'), ('C', 'D')]
     """
     A, B
     A=0, B=0
@@ -116,8 +125,8 @@ if __name__ == "__main__":
     A=1, B=1
     q(x) = [1, 0, 0, 0]
     """
-    marginal_queries = MyMarginals(dataset.domain, workload)
+    #marginal_queries = MyMarginals(dataset.domain, workload)
 
-    answers = marginal_queries.get_answers(dataset)
+    #answers = marginal_queries.get_answers(dataset)
 
-    print(answers)
+    #print(answers)
