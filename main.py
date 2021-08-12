@@ -75,8 +75,11 @@ class MyMarginals:
             return diff
         return np.concatenate(diff)
 
-def gaussian_mech(marginas_queries, dataset, epsilon):
-    ## Laplace mechanism
+def laplace_mech(marginal_queries, dataset):
+    sensitivity = 2
+    epsilon = 0.1
+    data[data[marginal_queries] == 1].shape[0] + np.random.laplace(loc=0, scale=sensitivity/epsilon)
+
     """
     for all D, D'
     for any S
