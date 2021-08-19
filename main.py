@@ -2,6 +2,7 @@ from dataloading.dataset import Dataset
 from dataloading.domain import Domain
 from hdmm.workload import Marginal
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class MyMarginal:
@@ -109,9 +110,18 @@ def laplace_mech(dataset, epsilon):
 if __name__ == "__main__":
     # dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
     dataset = Dataset.load('data/test.csv', 'data/test-domain.json')
-    real_answers, laplace_answers = laplace_mech(dataset,epsilon = 10)
-    error = np.linalg.norm(real_answers - laplace_answers)
-    print(error)
+    epsilon_values = [0.1, 1, 10, 20, 50]
+    error_values = []
+    for elem in epsilon_values:
+        real_answers, laplace_answers = laplace_mech(dataset,elem)
+        error = np.linalg.norm(real_answers - laplace_answers)
+        print(elem, error)
+        error_values.append(error)
+    plt.plot(epsilon_values, error_values, 'ro')
+    plt.title('changes in error related to epsilon')
+    plt.xlabel('epsilon')
+    plt.ylabel('error')
+    plt.show()
     #print(laplace_answers)
 
     #print(dataset.df.head())
