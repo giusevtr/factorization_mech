@@ -3,6 +3,8 @@ from dataloading.domain import Domain
 from hdmm.workload import Marginal
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import random
 
 
 class MyMarginal:
@@ -76,8 +78,7 @@ class MyMarginals:
             return diff
         return np.concatenate(diff)
 
-def laplace_mech(dataset, epsilon):
-    workload = [('A', 'B'), ('A', 'C'), ('C', 'D')]
+def laplace_mech(dataset, epsilon, workload):
     marginal_queries = MyMarginals(dataset.domain, workload)
     answers = marginal_queries.get_answers(dataset)
     sensitivity = len(workload)/dataset.df.shape[0]
@@ -108,12 +109,34 @@ def laplace_mech(dataset, epsilon):
 
 
 if __name__ == "__main__":
-    # dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
-    dataset = Dataset.load('data/test.csv', 'data/test-domain.json')
-    epsilon_values = [0.1, 1, 10, 20, 50]
+    dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
+    # dataset = Dataset.load('data/test.csv', 'data/test-domain.json')
+    data = pd.read_csv(r"/Users/nikhiljain/PycharmProjects/factorization_mech/data/adult-domain.json")
+    data_attributes = []
+    for elem in data:
+        for i in range(len(elem)):
+            if elem[i] == '"':
+                if i >= 2:
+                    data_attributes.append(elem[2:i])
+    print(data_attributes)
+    workload = []
+    n = random.randint(2,10)
+    i = 0
+    while i < n:
+        elem_in_workload = []
+        m = random.randint(2, 15)
+        while len(elem_in_workload) < m:
+            p = random.randint(0, 14)
+            if data_attributes[p] not in elem_in_workload:
+                elem_in_workload.append(data_attributes[p])
+        workload.append(elem_in_workload)
+        i += 1
+    print(workload)
+    epsilon_values = [0.1, 0.2, 0.5, 1, 10]
     error_values = []
     for elem in epsilon_values:
-        real_answers, laplace_answers = laplace_mech(dataset,elem)
+        print(elem)
+        real_answers, laplace_answers = laplace_mech(dataset,elem,workload)
         error = np.linalg.norm(real_answers - laplace_answers)
         print(elem, error)
         error_values.append(error)
