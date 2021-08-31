@@ -87,28 +87,16 @@ def laplace_mech(dataset, epsilon, workload):
     noisy_answers = answers + noise
     return answers, noisy_answers
 
-    """
-    for all D, D'
-    for any S
-    pr(M(D) \in S )\leq e^{epsilon} pr(M(D') \in S)
-    """
+def gaussian_mech(dataset, epsilon, workload, delta):
+    marginal_queries = MyMarginals(dataset.domain, workload)
+    answers = marginal_queries.get_answers(dataset)
+    sensitivity = len(workload)/dataset.df.shape[0]
+    #dataset[dataset[marginal_queries] == 1].shape[0] + np.random.laplace(loc=0, scale=sensitivity/epsilon)
+    noise = np.random.laplace(loc=0, scale=sensitivity/epsilon, size=answers.shape)
+    noisy_answers = [answers + noise for i in range(delta)]
+    return answers, np.mean(noisy_answers)
 
-    # get sensitivity:
-    # query sensitivity: q(D) = sum_{x \in D } q(x)
-    # |q(D) - q(D')| \leq 1
-
-    # l1-sensitivity of f is  max_{D,D'} || f(D) - f(D') ||_1 .`
-    #
-    # v  = [q_1(D), q_2(D), ..., q_m(D)]
-    # v' = [q_1(D'), q_2(D'), ..., q_m(D')]
-    # || v - v' ||_1  <= workload_size
-
-    real_answers = marginas_queries.get_answers(dataset)
-    priv_answers = None
-    return priv_answers
-
-
-if __name__ == "__main__":
+def workloads():
     dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
     # dataset = Dataset.load('data/test.csv', 'data/test-domain.json')
     data = pd.read_csv(r"/Users/nikhiljain/PycharmProjects/factorization_mech/data/adult-domain.json")
@@ -118,32 +106,93 @@ if __name__ == "__main__":
             if elem[i] == '"':
                 if i >= 2:
                     data_attributes.append(elem[2:i])
-    print(data_attributes)
-    workload = []
-    n = random.randint(2,10)
-    i = 0
-    while i < n:
-        elem_in_workload = []
-        m = random.randint(2, 15)
-        while len(elem_in_workload) < m:
-            p = random.randint(0, 14)
-            if data_attributes[p] not in elem_in_workload:
-                elem_in_workload.append(data_attributes[p])
-        workload.append(elem_in_workload)
-        i += 1
-    print(workload)
-    epsilon_values = [0.1, 0.2, 0.5, 1, 10]
+    # print(data_attributes)
+    list_of_workloads = []
+    workload_lengths = [10]
+    for n in workload_lengths:
+        workload = []
+        i = 0
+        while i < n:
+            elem_in_workload = []
+            k = random.randint(1, 3)
+            while len(elem_in_workload) < k:
+                p = random.randint(0, 14)
+                if data_attributes[p] not in elem_in_workload:
+                    elem_in_workload.append(data_attributes[p])
+            workload.append(elem_in_workload)
+            i += 1
+        list_of_workloads.append(workload)
+    return list_of_workloads
+
+def laplace_error_calc(dataset, workload):
+    epsilon_values = [0.1, 0.2, 0.5, 1, 1.5, 2]
     error_values = []
     for elem in epsilon_values:
         print(elem)
-        real_answers, laplace_answers = laplace_mech(dataset,elem,workload)
+        real_answers, laplace_answers = laplace_mech(dataset, elem, workload)
         error = np.linalg.norm(real_answers - laplace_answers)
-        print(elem, error)
-        error_values.append(error)
-    plt.plot(epsilon_values, error_values, 'ro')
+        max_error = np.abs(real_answers - laplace_answers).max()
+        print(elem, max_error)
+        error_values.append(max_error)
+    plt.plot(epsilon_values, error_values, 'o-')
+
+def gaussian_error_calc(dataset, workload):
+    epsilon_values = [0.1, 0.2, 0.5, 1, 1.5, 2]
+    error_values = []
+    for elem in epsilon_values:
+        print(elem)
+        real_answers, gaussian_answers = gaussian_mech(dataset, elem, workload, delta = 500)
+        error = np.linalg.norm(real_answers - gaussian_answers)
+        max_error = np.abs(real_answers - gaussian_answers).max()
+        print(elem, max_error)
+        error_values.append(max_error)
+    plt.plot(epsilon_values, error_values, 'o-')
+
+
+if __name__ == "__main__":
+    dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
+    # # dataset = Dataset.load('data/test.csv', 'data/test-domain.json')
+    data = pd.read_csv(r"/Users/nikhiljain/PycharmProjects/factorization_mech/data/adult-domain.json")
+    # data_attributes = []
+    # for elem in data:
+    #     for i in range(len(elem)):
+    #         if elem[i] == '"':
+    #             if i >= 2:
+    #                 data_attributes.append(elem[2:i])
+    # print(data_attributes)
+    # workload_lengths = [10, 20, 30, 40]
+    # for n in workload_lengths:
+    #     workload = []
+    #     i = 0
+    #     while i < n:
+    #         elem_in_workload = []
+    #         k = random.randint(1, 3)
+    #         while len(elem_in_workload) < k:
+    #             p = random.randint(0, 14)
+    #             if data_attributes[p] not in elem_in_workload:
+    #                 elem_in_workload.append(data_attributes[p])
+    #         workload.append(elem_in_workload)
+    #         i += 1
+    #     print(workload)
+    #     epsilon_values = [0.1, 0.2, 0.5, 1, 1.5, 2]
+    #     error_values = []
+    #     for elem in epsilon_values:
+    #         print(elem)
+    #         real_answers, laplace_answers = laplace_mech(dataset,elem,workload)
+    #         error = np.linalg.norm(real_answers - laplace_answers)
+    #         max_error = np.abs(real_answers - laplace_answers).max()
+    #         print(elem, max_error)
+    #         error_values.append(max_error)
+    #     plt.plot(epsilon_values, error_values, 'o-', label = n)
+    workloads_list = workloads()
+    print(workloads_list)
+    for elem in workloads_list:
+        laplace_error_calc(dataset, elem)
+        gaussian_error_calc(dataset, elem)
     plt.title('changes in error related to epsilon')
     plt.xlabel('epsilon')
     plt.ylabel('error')
+    plt.legend()
     plt.show()
     #print(laplace_answers)
 
