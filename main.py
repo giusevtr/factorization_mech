@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import random
+import math
 
 
 class MyMarginal:
@@ -91,10 +92,11 @@ def gaussian_mech(dataset, epsilon, workload, delta):
     marginal_queries = MyMarginals(dataset.domain, workload)
     answers = marginal_queries.get_answers(dataset)
     sensitivity = len(workload)/dataset.df.shape[0]
+    x = (2 * sensitivity ** 2 * math.log(1.25 / delta)) / (epsilon ** 2)
     #dataset[dataset[marginal_queries] == 1].shape[0] + np.random.laplace(loc=0, scale=sensitivity/epsilon)
-    noise = np.random.laplace(loc=0, scale=sensitivity/epsilon, size=answers.shape)
-    noisy_answers = [answers + noise for i in range(delta)]
-    return answers, np.mean(noisy_answers)
+    noise = np.random.normal(loc=0, scale=np.sqrt(x), size=answers.shape)
+    noisy_answers = answers + noise
+    return answers, noisy_answers
 
 def workloads():
     dataset = Dataset.load('data/adult.csv', 'data/adult-domain.json')
@@ -108,7 +110,7 @@ def workloads():
                     data_attributes.append(elem[2:i])
     # print(data_attributes)
     list_of_workloads = []
-    workload_lengths = [10]
+    workload_lengths = [200]
     for n in workload_lengths:
         workload = []
         i = 0
@@ -134,19 +136,20 @@ def laplace_error_calc(dataset, workload):
         max_error = np.abs(real_answers - laplace_answers).max()
         print(elem, max_error)
         error_values.append(max_error)
-    plt.plot(epsilon_values, error_values, 'o-')
+    plt.plot(epsilon_values, error_values, 'o-', label = 'laplace')
 
 def gaussian_error_calc(dataset, workload):
     epsilon_values = [0.1, 0.2, 0.5, 1, 1.5, 2]
     error_values = []
+    n = dataset.df.shape[0]
     for elem in epsilon_values:
         print(elem)
-        real_answers, gaussian_answers = gaussian_mech(dataset, elem, workload, delta = 500)
+        real_answers, gaussian_answers = gaussian_mech(dataset, elem, workload, delta = 1/n**2)
         error = np.linalg.norm(real_answers - gaussian_answers)
         max_error = np.abs(real_answers - gaussian_answers).max()
         print(elem, max_error)
         error_values.append(max_error)
-    plt.plot(epsilon_values, error_values, 'o-')
+    plt.plot(epsilon_values, error_values, 'o-', label = 'gaussian')
 
 
 if __name__ == "__main__":
